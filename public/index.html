@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人力大厅预约系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- 配置Tailwind自定义颜色和字体 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1e40af', // 深蓝色作为主色调
+                        secondary: '#3b82f6', // 中蓝色作为辅助色
+                        accent: '#60a5fa', // 浅蓝色作为强调色
+                        neutral: '#f3f4f6', // 浅灰色作为中性色
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .card-shadow {
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+            }
+            .transition-custom {
+                transition: all 0.3s ease;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- 页面标题 -->
+        <header class="text-center mb-10">
+            <h1 class="text-[clamp(1.8rem,5vw,2.8rem)] font-bold text-primary mb-2">
+                <i class="fa fa-users mr-3"></i>人力大厅预约系统
+            </h1>
+            <p class="text-gray-600 text-lg">请选择您需要办理的业务类型和时间</p>
+        </header>
+        
+        <!-- 预约表单卡片 -->
+        <div class="bg-white rounded-xl p-6 md:p-8 card-shadow mb-8 transform hover:scale-[1.01] transition-custom">
+            <form id="appointmentForm" class="space-y-8">
+                <!-- 业务类型选择 -->
+                <div class="form-group">
+                    <label for="serviceType" class="block text-gray-700 font-medium mb-3 text-lg">
+                        <i class="fa fa-list-ul text-secondary mr-2"></i>选择业务类型
+                    </label>
+                    <select id="serviceType" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-custom appearance-none bg-white" required>
+                        <option value="" disabled selected>请选择需要办理的业务</option>
+                        <option value="settlement">办理落户</option>
+                        <option value="resignation">办理离职</option>
+                        <option value="reimbursement">办理报销</option>
+                        <option value="entry">办理入职</option>
+                        <option value="internship">办理实习</option>
+                    </select>
+                </div>
+                
+                <!-- 日期和时间选择区域 (默认隐藏) -->
+                <div id="datetimeSection" class="hidden space-y-6 opacity-0 transition-custom duration-500">
+                    <!-- 日期选择 -->
+                    <div class="form-group">
+                        <label for="appointmentDate" class="block text-gray-700 font-medium mb-3 text-lg">
+                            <i class="fa fa-calendar text-secondary mr-2"></i>选择办理日期
+                        </label>
+                        <div class="grid grid-cols-1 md:grid-cols-7 gap-2" id="dateSelector">
+                            <!-- 日期选项将通过JS动态生成 -->
+                        </div>
+                    </div>
+                    
+                    <!-- 时间段选择 -->
+                    <div class="form-group">
+                        <label class="block text-gray-700 font-medium mb-3 text-lg">
+                            <i class="fa fa-clock-o text-secondary mr-2"></i>选择办理时间段
+                        </label>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2" id="timeSlots">
+                            <!-- 时间段选项将通过JS动态生成 -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 提交按钮 -->
+                <div class="form-group text-center pt-4">
+                    <button type="submit" id="submitBtn" class="bg-primary hover:bg-primary/90 text-white font-medium px-8 py-3 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-custom disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        <i class="fa fa-check-circle mr-2"></i>提交预约
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- 预约成功提示 (默认隐藏) -->
+        <div id="successMessage" class="hidden bg-green-50 border border-green-200 text-green-800 rounded-xl p-6 text-center">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
+                <i class="fa fa-check text-3xl text-green-600"></i>
+            </div>
+            <h2 class="text-xl font-bold mb-2">预约成功！</h2>
+            <p id="successDetails" class="mb-4"></p>
+            <button id="resetBtn" class="text-primary hover:text-primary/80 font-medium">
+                <i class="fa fa-refresh mr-1"></i> 重新预约
+            </button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+    
