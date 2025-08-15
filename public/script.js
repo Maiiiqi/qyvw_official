@@ -1,4 +1,61 @@
-// 生成未来7天的日期选项
+// 全局存储用户信息和access_token
+const globalData = {
+    userId: null,
+    userName: null,
+    accessToken: null
+};
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. 从URL提取code（企业微信授权后带回）
+    const code = getCodeFromUri();
+    if (code) {
+        // 2. 通过后端接口获取用户信息（避免前端暴露敏感信息）
+        initUserInfo(code);
+    } else {
+        // 无code时提示需要在企业微信中打开（跳转授权流程）
+        document.getElementById('userStatus').textContent = '请在企业微信客户端中打开';
+        document.getElementById('userLoading').classList.add('hidden');
+    }
+});
+
+// 1. 从URL中提取code参数（企业微信授权回调带回）
+function getCodeFromUri() {
+    const search = window.location.search;
+    const params = new URLSearchParams(search);
+    return params.get('code'); // 返回code或null
+}
+
+// 2. 初始化用户信息（通过后端接口中转，安全获取）
+function initUserInfo(code) {
+    // 调用后端接口获取用户信息（后端负责调用企业微信API）
+    fetch(`/api/get-user-info?code=${code}`)
+        .then(response => {
+            if (!response.ok) throw new Error('获取用户信息失败');
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // 存储用户信息
+                globalData.userId = data.userId;
+                globalData.userName = data.userName;
+                globalData.accessToken = data.accessToken; // 可选：存储token用于后续接口调用
+                
+                // 显示用户信息
+                document.getElementById('userStatus').textContent = `当前登录：${data.userName}`;
+                document.getElementById('userLoading').classList.add('hidden');
+            } else {
+                throw new Error(data.message || '用户信息解析失败');
+            }
+        })
+        .catch(error => {
+            console.error('用户信息初始化失败：', error);
+            document.getElementById('userStatus').textContent = '登录失败，请重试';
+            document.getElementById('userLoading').classList.add('hidden');
+        });
+}
+
+// 3. 生成未来7天的日期选项
 function generateDateOptions() {
     const dateSelector = document.getElementById('dateSelector');
     dateSelector.innerHTML = '';
@@ -28,14 +85,10 @@ function generateDateOptions() {
         
         // 添加点击事件
         dateOption.addEventListener('click', () => {
-            // 移除其他日期的选中状态
             document.querySelectorAll('.date-option').forEach(option => {
                 option.classList.remove('border-primary', 'bg-primary/5');
             });
-            // 设置当前日期为选中状态
             dateOption.classList.add('border-primary', 'bg-primary/5');
-            
-            // 更新选中的日期
             updateSelectedDateTime('date', dateOption.getAttribute('data-date'));
         });
         
@@ -48,7 +101,7 @@ function generateDateOptions() {
     }
 }
 
-// 生成时间段选项
+// 4. 生成时间段选项
 function generateTimeSlots() {
     const timeSlots = document.getElementById('timeSlots');
     timeSlots.innerHTML = '';
@@ -68,19 +121,14 @@ function generateTimeSlots() {
         const timeOption = document.createElement('div');
         timeOption.className = `time-option border rounded-lg p-3 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-custom ${index === 0 ? 'border-primary bg-primary/5' : ''}`;
         timeOption.setAttribute('data-time', slot);
-        
         timeOption.textContent = slot;
         
         // 添加点击事件
         timeOption.addEventListener('click', () => {
-            // 移除其他时间段的选中状态
             document.querySelectorAll('.time-option').forEach(option => {
                 option.classList.remove('border-primary', 'bg-primary/5');
             });
-            // 设置当前时间段为选中状态
             timeOption.classList.add('border-primary', 'bg-primary/5');
-            
-            // 更新选中的时间
             updateSelectedDateTime('time', timeOption.getAttribute('data-time'));
         });
         
@@ -93,103 +141,31 @@ function generateTimeSlots() {
     });
 }
 
-// 从OAuth2的跳转URI中获取code参数
-function getCodeFromUri() {
-    const search = window.location.search;
-    const params = new URLSearchParams(search);
-    // 获取code字段的参数
-    const code = params.get('code');
-    return code;
-}
-
-// 获取access_token
-function getAccessToken() {
-    const coorpId = 'wwe44bdd7846fceb52'; // 替换为你的企业ID
-    const appSecret = 'FP7j216jFs4MELVx_23c-ay65wh84UqpqN1Ef90eAlY'; // 替换为你的应用密钥
-    // GET方法
-    return fetch(`https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=${coorpId}&corpsecret=${appSecret}`, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            console.log('Access Token:', data.access_token);
-            return data.access_token;
-        }
-    });
-}
-
-// 从企微获取用户姓名
-function getUserName() {
-    const code = getCodeFromUri();
-    if (code) {
-        // 获取access_token
-        getAccessToken().then(token => {
-            if (token) {
-                // 调用后端API获取用户信id
-                fetch(`https://qyapi.weixin.qq.com/cgi-bin/user/getuserinfo?access_token=${token}&code=${code}`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // 存储用户ID
-                        localStorage.setItem('User Id', data.UserId);
-                        console.log('User Id:', data.UserId);   
-                        // 调用后端接口获取用户姓名
-                        fetch(`https://qyapi.weixin.qq.com/cgi-bin/user/get?access_token=${token}&userid=${data.UserId}`, {
-                            method: 'GET',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                // 存储用户姓名 
-                                localStorage.setItem('userName', data.name);
-                                console.log('User Name:', data.name);
-                            }
-                        });
-                    }
-                });
-            }
-        });
-    }
-}
-
-// 存储选中的日期和时间
+// 5. 存储选中的日期和时间
 const selectedData = {
     serviceType: '',
     date: '',
     time: ''
 };
 
-// 更新选中的日期或时间
+// 6. 更新选中的日期或时间
 function updateSelectedDateTime(type, value) {
     selectedData[type] = value;
-    
-    // 检查是否可以启用提交按钮
     checkSubmitAvailability();
 }
 
-// 检查是否可以启用提交按钮
+// 7. 检查是否可以启用提交按钮
 function checkSubmitAvailability() {
     const submitBtn = document.getElementById('submitBtn');
-    if (selectedData.serviceType && selectedData.date && selectedData.time) {
+    // 必须选择业务类型、日期、时间，且已获取用户信息
+    if (selectedData.serviceType && selectedData.date && selectedData.time && globalData.userId) {
         submitBtn.removeAttribute('disabled');
     } else {
         submitBtn.setAttribute('disabled', 'true');
     }
 }
 
-// 业务类型选择变化处理
+// 8. 业务类型选择变化处理
 document.getElementById('serviceType').addEventListener('change', function() {
     const serviceType = this.value;
     const datetimeSection = document.getElementById('datetimeSection');
@@ -214,11 +190,10 @@ document.getElementById('serviceType').addEventListener('change', function() {
         }, 300);
     }
     
-    // 检查是否可以启用提交按钮
     checkSubmitAvailability();
 });
 
-// 表单提交处理
+// 9. 表单提交处理（包含用户信息）
 document.getElementById('appointmentForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
@@ -226,17 +201,16 @@ document.getElementById('appointmentForm').addEventListener('submit', async func
     const serviceTypeSelect = document.getElementById('serviceType');
     const serviceTypeName = serviceTypeSelect.options[serviceTypeSelect.selectedIndex].text;
     
-    // 准备提交的数据
+    // 准备提交的数据（包含用户ID，关联预约人）
     const formData = {
-        serviceType: selectedData.serviceType,
-        serviceTypeName: serviceTypeName,
-        date: selectedData.date,
-        time: selectedData.time,
+        ...selectedData,
+        serviceTypeName,
+        userId: globalData.userId,
+        userName: globalData.userName,
         timestamp: new Date().toISOString()
     };
     
     try {
-        // 模拟提交到后端
         const response = await fetch('/api/submit', {
             method: 'POST',
             headers: {
@@ -251,19 +225,23 @@ document.getElementById('appointmentForm').addEventListener('submit', async func
             // 显示成功消息
             document.getElementById('appointmentForm').classList.add('hidden');
             document.getElementById('successDetails').innerHTML = `
+                <p>预约人：${globalData.userName}</p>
                 <p>您已成功预约 <strong>${serviceTypeName}</strong></p>
                 <p>日期：${selectedData.date}</p>
                 <p>时间：${selectedData.time}</p>
+                <p>预约ID：${result.appointmentId}</p>
             `;
             document.getElementById('successMessage').classList.remove('hidden');
+        } else {
+            throw new Error(result.message || '提交失败');
         }
     } catch (error) {
         console.error('提交预约失败:', error);
-        alert('提交预约失败，请重试');
+        alert('提交预约失败：' + error.message);
     }
 });
 
-// 重新预约按钮点击事件
+// 10. 重新预约按钮点击事件
 document.getElementById('resetBtn').addEventListener('click', function() {
     // 重置表单
     document.getElementById('appointmentForm').reset();
@@ -279,4 +257,3 @@ document.getElementById('resetBtn').addEventListener('click', function() {
     // 禁用提交按钮
     document.getElementById('submitBtn').setAttribute('disabled', 'true');
 });
-    
